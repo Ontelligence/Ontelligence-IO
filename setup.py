@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def readme():
@@ -7,7 +7,7 @@ def readme():
 
 
 setup(
-    name='Ontelligence-IO',
+    name='ontelligence',
     version='0.1.0',
     description='',
     long_description=readme(),
@@ -18,7 +18,7 @@ setup(
     author_email='hamza.ahmad@me.com',
     keywords='python ontelligence io data management transformation',
     license='MIT',
-    packages=['ontelligence'],
+    packages=find_packages(),
     install_requires=[
         'cached-property~=1.5',
         'pandas>=0.17.1, <2.0',
