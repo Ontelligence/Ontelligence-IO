@@ -1,0 +1,3 @@
+include README.md
+include ontelligence/*.txt
+include ontelligence/*.html
