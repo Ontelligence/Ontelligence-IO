@@ -29,7 +29,7 @@ setup(
         'boto3',
         'cchardet==2.1.7',
         # 'pendulum>=2.1.2',
-        'pendulum>=1.4.4',
+        # 'pendulum>=1.4.4',
         'snowflake-connector-python',
         'flake8',
         'smart_open[all]'
