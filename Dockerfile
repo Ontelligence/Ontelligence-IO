@@ -19,6 +19,8 @@ RUN apt-get update \
 #
 #RUN pip install git+ssh://git@github.com/hamzaahmad-io/Ontelligence-IO.git
 
+#RUN pip install git+https://git@github.com/Ontelligence/Ontelligence-IO.git
+
 COPY . .
 RUN pip install --editable .
-RUN python main.py
+CMD ["bash"]
