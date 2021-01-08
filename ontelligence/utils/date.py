@@ -1,6 +1,9 @@
 from typing import Optional, List, Union, Dict, Any
 
-import pendulum
+try:
+    import pendulum
+except ImportError:
+    pass
 from calendar import monthrange
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -12,7 +15,10 @@ from itertools import groupby
 
 
 DATE_FORMAT = '%Y-%m-%d'
-TIMEZONE = pendulum.timezone('America/New_York')
+try:
+    TIMEZONE = pendulum.timezone('America/New_York')
+except Exception:
+    pass
 
 # date_format = date_format.replace('%-', '%#') if sys.platform == 'win32' else date_format.replace('%#', '%-')
 
