@@ -48,7 +48,7 @@ class SFTP(BaseSftpProvider):
         raise NotImplementedError
 
     def get_size(self, file: str, is_binary=False, is_ascii=False):
-        raise NotImplementedError
+        return self.get_conn().stat(file).st_size
 
 ########################################################################################################################
 # Metadata.
