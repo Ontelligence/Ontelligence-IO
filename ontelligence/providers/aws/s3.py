@@ -1,3 +1,4 @@
+import os
 import fnmatch
 import gzip as gz
 import io
@@ -42,7 +43,13 @@ class S3(BaseAwsProvider):
         # NOTE: `conn_id = None` falls back to using the host's AWS config/credentials.
         kwargs['client_type'] = 's3'
         kwargs['resource_type'] = 's3'
+
+        if bucket:
+            kwargs['bucket'] = bucket
+
         super().__init__(conn_id=conn_id, **kwargs)
+
+        # TODO: Populate self.bucket and self.prefix from connection when not provided to S3 class.
         self.bucket = bucket
         self.prefix = kwargs['prefix'] if 'prefix' in kwargs else ''
 
@@ -125,7 +132,7 @@ class S3(BaseAwsProvider):
     @provide_bucket
     def list_prefixes(self, bucket: Optional[str] = None, prefix: Optional[str] = None, delimiter: Optional[str] = None, page_size: Optional[int] = None, max_items: Optional[int] = None) -> list:
         """Lists prefixes in a bucket under prefix"""
-        prefix = prefix or ''
+        prefix = prefix or self.prefix
         delimiter = delimiter or '/'
         config = {'PageSize': page_size, 'MaxItems': max_items}
 
@@ -169,7 +176,7 @@ class S3(BaseAwsProvider):
     def list_keys(self, bucket: Optional[str] = None, prefix: Optional[str] = None, delimiter: Optional[str] = None,
                   page_size: Optional[int] = None, max_items: Optional[int] = None) -> list:
         """Lists keys in a bucket under prefix and not containing delimiter"""
-        prefix = prefix or ''
+        prefix = prefix or self.prefix
         delimiter = delimiter or ''
         config = {'PageSize': page_size, 'MaxItems': max_items}
 

@@ -26,7 +26,7 @@ class AwsSecret(BaseDataClass):
 @dataclass
 class AwsS3Connection(BaseDataClass):
     bucket: str
-    path: Optional[str]
+    prefix: Optional[str]
 
 
 @dataclass
