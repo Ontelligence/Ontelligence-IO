@@ -41,7 +41,6 @@ class FTP(BaseFtpProvider):
 
     def upload_file(self, file_path: str):
         file_name = os.path.split(file_path)[1]
-        self.get_conn().put(localpath=file_path, remotepath=file_name)
         with open(file_path, 'rb') as f:
             self.get_conn().storbinary('STOR ' + file_name, f)
         self.log.info('Uploaded {} to {}'.format(file_name, self.path))

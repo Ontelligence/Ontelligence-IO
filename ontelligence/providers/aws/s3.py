@@ -186,7 +186,7 @@ class S3(BaseAwsProvider):
         keys = []
         for page in response:
             if 'Contents' in page:
-                for k in page['Contents']:
+                for k in [x for x in page['Contents'] if x['Key'] != prefix]:
                     keys.append(k['Key'])
 
         return keys
@@ -255,9 +255,10 @@ class S3(BaseAwsProvider):
 ########################################################################################################################
 
     @provide_bucket
-    def upload_file(self, filename: str, key: str, bucket: Optional[str] = None, replace: bool = False,
+    def upload_file(self, filename: str, key: Optional[str] = None, bucket: Optional[str] = None, replace: bool = False,
                     encrypt: bool = False, acl_policy: Optional[str] = None) -> None:
         """Loads a local file to S3"""
+        key = key or self.prefix + os.path.split(filename)[1]
         if not replace and self.key_exists(key, bucket):
             raise ValueError("The key {key} already exists.".format(key=key))
         extra_args = {}
@@ -311,8 +312,20 @@ class S3(BaseAwsProvider):
 
         self.get_conn().upload_fileobj(file_obj, bucket, key, ExtraArgs=extra_args)
 
-    def copy_key(self):
-        raise NotImplementedError
+    @provide_bucket
+    def copy_key(self, key: str, bucket: Optional[str] = None, destination_bucket: Optional[str] = None, destination_prefix: Optional[str] = None) -> str:
+        """Copy a file from one S3 location to another"""
+        if not self.key_exists(key, bucket):
+            raise Exception(f'The source file in Bucket {bucket} with path {key} does not exist')
+        copy_source = {'Bucket': bucket, 'Key': key}
+        destination_bucket = destination_bucket or bucket
+        destination_prefix = destination_prefix or self.prefix
+        destination_key = destination_prefix + os.path.split(key)[1]
+
+        print('copy_source:', copy_source)
+        print('destination_bucket:', destination_bucket)
+        print('destination_prefix:', destination_key)
+        # self.get_conn().copy_object(CopySource=copy_source, Bucket=destination_bucket, Key=destination_key)
 
     def move_key(self):
         raise NotImplementedError
