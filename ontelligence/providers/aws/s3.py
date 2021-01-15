@@ -222,10 +222,15 @@ class S3(BaseAwsProvider):
         return local_path
 
     @provide_bucket
-    def read_key(self, key: str, bucket: Optional[str] = None) -> str:
+    def open(self, key: str, bucket: Optional[str] = None) -> str:
         """Reads a key from S3"""
         obj = self.get_key(key, bucket)
-        return obj.get()['Body'].read().decode('utf-8')
+        return obj.get()['Body']
+
+    @provide_bucket
+    def read_key(self, key: str, bucket: Optional[str] = None) -> str:
+        """Reads a key from S3"""
+        return self.open(key=key, bucket=bucket).read().decode('utf-8')
 
     @provide_bucket
     def select_key(self, key: str, bucket: Optional[str] = None, expression: Optional[str] = None, expression_type: Optional[str] = None,
