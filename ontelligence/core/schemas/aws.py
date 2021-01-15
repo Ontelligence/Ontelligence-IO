@@ -54,7 +54,7 @@ class S3Key(BaseDataClass):
         bucket = regex.group(1)
         key = regex.group(2)
         prefix = os.path.dirname(key) + '/'
-        return S3Key.__new__(cls, bucket=bucket, prefix=prefix, name=os.path.split(key)[1])
+        return cls(bucket=bucket, prefix=prefix, name=os.path.split(key)[1])
 
     @property
     def path(self):
