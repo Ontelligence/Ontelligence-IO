@@ -374,8 +374,56 @@ class Snowflake(BaseSnowflakeProvider):
 # Exports data.
 ########################################################################################################################
 
-    def export_query(self):
-        raise NotImplementedError
+    def export_query(self, query: str,
+                     file_name: str,
+                     s3_path: str,
+                     storage_integration: str,
+                     file_type: Optional[str] = None,
+                     compression: Optional[str] = None,
+                     header: Optional[bool] = True
+                     ):
+
+        s3_path = s3_path + file_name if s3_path.endswith('/') else s3_path
+        storage_integration = storage_integration or None
+        file_type = file_type or 'CSV'
+        compression = compression or 'NONE'
+        header = 'TRUE' if header else 'FALSE'
+
+        query = f'''COPY INTO '{s3_path}'
+                    FROM ({query.rstrip(';')})
+                    STORAGE_INTEGRATION={storage_integration}
+                    FILE_FORMAT=(
+                        TYPE={file_type}
+                        COMPRESSION={compression}
+                        FIELD_OPTIONALLY_ENCLOSED_BY='"'
+                        NULL_IF = ('', 'NULL', 'null', 'N/A', '//N')
+                    )
+                    OVERWRITE=TRUE
+                    HEADER={header}
+                    MAX_FILE_SIZE={5 * 1024**3};'''
+        self.log_sql(query)
+        self.execute(query=query)
+
+    @provide_database_and_schema
+    def export_table(self, table: str,
+                     file_name: str,
+                     s3_path: str,
+                     storage_integration: str,
+                     file_type: Optional[str] = None,
+                     compression: Optional[str] = None,
+                     header: Optional[bool] = True,
+                     database: Optional[str] = None,
+                     schema: Optional[str] = None
+                     ):
+        self.export_query(
+            query=f'SELECT * FROM {database}.{schema}.{table}',
+            file_name=file_name,
+            s3_path=s3_path,
+            storage_integration=storage_integration,
+            file_type=file_type,
+            compression=compression,
+            header=header
+        )
 
 ########################################################################################################################
 # Stored procedures.
