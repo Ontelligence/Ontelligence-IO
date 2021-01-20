@@ -203,7 +203,9 @@ class FileObjectMixin:
             raise e
 
     def get_row_count(self) -> int:
-        raise NotImplementedError
+        if isinstance(self.file_path, StreamingBody):
+            return self.file_path.read().decode('utf-8').count('\n')
+        return sum(1 for _ in open(self.file_path))
 
     def get_column_count(self) -> int:
         raise NotImplementedError
@@ -234,13 +236,18 @@ class FileObjectMixin:
     def compress(self, compression: Optional[str] = 'GZIP'):
         if compression == 'GZIP':
             with open(self.file_path, 'rb') as f_in:
-                new_file_path = f_in.name + '.gz'
-                with gzip.open(new_file_path, 'wb') as f_out:
+                compressed_file_path = f_in.name + '.gz'
+                with gzip.open(compressed_file_path, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
-        return new_file_path
+        return compressed_file_path
 
     def uncompress(self):
-        raise NotImplementedError
+        # TODO: Infer file format before uncompressing.
+        with gzip.open(self.file_path, 'rb') as f_in:
+            uncompressed_file_path = f_in.name.rstrip('.gz')
+            with open(uncompressed_file_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        return uncompressed_file_path
 
     def encrypt(self):
         raise NotImplementedError
@@ -383,3 +390,20 @@ def get_latest_file(files: List[str], regex: Optional[str] = None, lookback_wind
     if not matched_files:
         raise Exception('Could not find the latest file. Try increasing the "lookback_window" value')
     return matched_files[-1]
+
+
+class FileList:
+
+    files = None
+
+    def __init__(self, files: List[File]):
+        self.files = files
+
+    def add_file(self, file: File):
+        self.files.append(file)
+
+    def combine(self):
+        # TODO: Check if each file has the same number of columns.
+        # TODO: Check if each file has column headers.
+        # TODO: Check if each file's column headers are the same and in the same order.
+        raise NotImplementedError
