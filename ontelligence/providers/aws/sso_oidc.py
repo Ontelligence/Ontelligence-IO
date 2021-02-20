@@ -31,22 +31,26 @@ class SSOOpenIDConnectProvider(BaseAwsProvider):
     def register_client(self, client_name: str = None):
         client_name = client_name or f'botocore-client-id-{self.sso_region}'
         res = self.get_conn().register_client(clientName=client_name, clientType='public')  # scopes=[]
-        res.pop('ResponseMetadata')
-        return res
+        client = {
+            'client_id': res['clientId'],
+            'client_id_issued_at': res['clientIdIssuedAt'],
+            'client_secret': res['clientSecret'],
+            'client_secret_expires_at': res['clientSecretExpiresAt']
+        }
+        return client
 
     def start_device_authorization(self, client):
         res = self.get_conn().start_device_authorization(
-            clientId=client['clientId'],
-            clientSecret=client['clientSecret'],
+            clientId=client['client_id'],
+            clientSecret=client['client_secret'],
             startUrl=self.start_url
         )
-        expires_in = datetime.timedelta(seconds=res['expiresIn'])
         authorization = {
             'device_code': res['deviceCode'],
             'user_code': res['userCode'],
             'verification_uri': res['verificationUri'],
             'verification_uri_complete': res['verificationUriComplete'],
-            'expires_at': datetime.datetime.now(tzutc()) + expires_in,
+            'expires_in': res['expiresIn'],
         }
         if 'interval' in res:
             authorization['interval'] = res['interval']
@@ -68,20 +72,19 @@ class SSOOpenIDConnectProvider(BaseAwsProvider):
             try:
                 res = self.get_conn().create_token(
                     grantType=self._GRANT_TYPE,
-                    clientId=client['clientId'],
-                    clientSecret=client['clientSecret'],
+                    clientId=client['client_id'],
+                    clientSecret=client['client_secret'],
                     deviceCode=authorization['device_code'],
                     # redirectUri=''
                 )
-                expires_in = datetime.timedelta(seconds=res['expiresIn'])
                 token = {
-                    'accessToken': res['accessToken'],
-                    'tokenType': res['tokenType'],
-                    'startUrl': self.start_url,
-                    # 'refreshToken': res.get('refreshToken'),
-                    # 'idToken': res.get('idToken'),
+                    'access_token': res['accessToken'],
+                    'token_type': res['tokenType'],
+                    'start_url': self.start_url,
+                    # 'refresh_token': res.get('refreshToken'),
+                    # 'id_token': res.get('idToken'),
                     'region': self.sso_region,
-                    'expiresAt': datetime.datetime.now(tzutc()) + expires_in
+                    'expires_in': res['expiresIn']
                 }
                 return token
             except self.get_conn().exceptions.SlowDownException:
