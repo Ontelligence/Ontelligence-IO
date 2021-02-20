@@ -227,10 +227,16 @@ class Snowflake(BaseSnowflakeProvider):
         or_replace = ' OR REPLACE' if replace_if_exists else ''
         if_not_exists = ' IF NOT EXISTS' if create_if_not_exists else ''
         skip_header = f'\nSKIP_HEADER = 1' if 'skip_header' in kwargs and kwargs.get('skip_header') else ''
-        query = f'''CREATE{or_replace} FILE FORMAT{if_not_exists} {file_format}
-                    TYPE = {file_format_type}
-                    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
-                    NULL_IF = ('NULL', 'null', 'N/A'){skip_header};'''
+        if file_format_type == 'CSV':
+            query = f'''CREATE{or_replace} FILE FORMAT{if_not_exists} {file_format}
+                        TYPE = {file_format_type}
+                        FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+                        NULL_IF = ('NULL', 'null', 'N/A'){skip_header};'''
+        elif file_format_type == 'PARQUET':
+            query = f'''CREATE{or_replace} FILE FORMAT{if_not_exists} {file_format}
+                        TYPE = {file_format_type}
+                        NULL_IF = ('NULL', 'null', 'N/A'){skip_header};'''
+
         self.log_sql(query)
         self.execute(query)
 

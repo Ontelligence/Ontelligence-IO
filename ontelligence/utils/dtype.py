@@ -129,7 +129,7 @@ def infer_data_schema(file_path, delimiter=',', override_dtypes=None, columns=No
                 dtypes.extend([override_dtypes[column]])
             else:
                 dtypes.extend([infer_dtype(file_path[column])])
-        return columns, dtypes
+        return [Column(name=x, dtype=str(y)) for x, y in zip(columns, dtypes)]
 
     # columns = columns if columns else File(file_path).get_headers(delimiter=delimiter, compression=compression)
     if not columns:
