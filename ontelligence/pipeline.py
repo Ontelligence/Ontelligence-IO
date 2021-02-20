@@ -32,6 +32,9 @@ class S3ToSnowflakeParams(BaseDataClass):
 
 def s3_to_snowflake(sf: Snowflake, s3: S3, params: S3ToSnowflakeParams, **kwargs):
 
+    # TODO: file_profile needs to be the entire profile instead of just the file_format.
+    params.file_profile = params.file_profile or 'CSV'
+
     table_exists = sf.table_exists(
         database=params.table.database,
         schema=params.table.db_schema,
@@ -65,7 +68,10 @@ def s3_to_snowflake(sf: Snowflake, s3: S3, params: S3ToSnowflakeParams, **kwargs
         _stage = _file_format
         _s3_path_for_stage = os.path.split(params.s3_path)[0]
         _s3_file_name = os.path.split(params.s3_path)[1]
-        sf.create_file_format(file_format=_file_format, file_format_type='CSV', replace_if_exists=True, skip_header=True)
+        if params.file_profile == 'CSV':
+            sf.create_file_format(file_format=_file_format, file_format_type=params.file_profile, replace_if_exists=True, skip_header=True)
+        elif params.file_profile == 'PARQUET':
+            sf.create_file_format(file_format=_file_format, file_format_type=params.file_profile, replace_if_exists=True)
         sf.create_stage(stage_name=_stage, storage_integration='INSCAPE_STORAGE_INTEGRATION', s3_path=_s3_path_for_stage, file_format=_file_format)
         # Copy data into staging table.
         if 'data_schema' not in kwargs:
@@ -88,7 +94,10 @@ def s3_to_snowflake(sf: Snowflake, s3: S3, params: S3ToSnowflakeParams, **kwargs
         _stage = _file_format
         _s3_path_for_stage = os.path.split(params.s3_path)[0]
         _s3_file_name = os.path.split(params.s3_path)[1]
-        sf.create_file_format(file_format=_file_format, file_format_type='CSV', replace_if_exists=True, skip_header=True)
+        if params.file_profile == 'CSV':
+            sf.create_file_format(file_format=_file_format, file_format_type=params.file_profile, replace_if_exists=True, skip_header=True)
+        elif params.file_profile == 'PARQUET':
+            sf.create_file_format(file_format=_file_format, file_format_type=params.file_profile, replace_if_exists=True)
         sf.create_stage(stage_name=_stage, storage_integration='INSCAPE_STORAGE_INTEGRATION', s3_path=_s3_path_for_stage, file_format=_file_format)
         # Copy data into staging table.
         sf.copy_into_from_stage_expanded(table_name=staging_table.name, stage_name=f'{_stage}/{_s3_file_name}', file_format=_file_format, pattern='*', columns=columns)
