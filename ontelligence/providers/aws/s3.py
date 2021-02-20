@@ -3,6 +3,7 @@ import fnmatch
 import gzip as gz
 import io
 import re
+import json
 import shutil
 from functools import wraps
 from inspect import signature
@@ -112,9 +113,14 @@ class S3(BaseAwsProvider):
         return lifecycle  # return lifecycle.rules
 
     @provide_bucket
-    def _get_bucket_policy(self, bucket: Optional[str] = None):
+    def get_bucket_policy(self, bucket: Optional[str] = None):
         policy = self.get_resource().BucketPolicy(bucket)
-        return policy  # return policy.policy
+        return json.loads(policy.policy)
+
+    @provide_bucket
+    def get_bucket_encryption(self, bucket: Optional[str] = None):
+        res = self.get_conn().get_bucket_encryption(Bucket=bucket)
+        return res['ServerSideEncryptionConfiguration']
 
 ########################################################################################################################
 # Prefix.
@@ -358,3 +364,77 @@ class S3(BaseAwsProvider):
 
     def update_object_tags(self):
         raise NotImplementedError
+
+########################################################################################################################
+# Event notifications.
+########################################################################################################################
+
+    @provide_bucket
+    def get_lambda_configurations(self, bucket: Optional[str] = None) -> List[Optional[Dict[str, Any]]]:
+        """Get Amazon Lambda event notifications"""
+        notifications = self.get_resource().BucketNotification(bucket)
+        configurations = notifications.lambda_function_configurations
+        return configurations or []
+
+    @provide_bucket
+    def get_queue_configurations(self, bucket: Optional[str] = None) -> List[Optional[Dict[str, Any]]]:
+        """Get Amazon SQS event notifications"""
+        notifications = self.get_resource().BucketNotification(bucket)
+        configurations = notifications.queue_configurations
+        return configurations or []
+
+    @provide_bucket
+    def get_topic_configurations(self, bucket: Optional[str] = None) -> List[Optional[Dict[str, Any]]]:
+        """Get Amazon SNS event notifications"""
+        notifications = self.get_resource().BucketNotification(bucket)
+        configurations = notifications.topic_configurations
+        return configurations or []
+
+    @provide_bucket
+    def create_lambda_configuration(self, lambda_arn: str, on_events: Union[str, List[str]], event_name: str = None,
+                                    bucket: Optional[str] = None, prefix: str = None, suffix: str = None, ):
+        """Create Amazon Lambda event notification"""
+        _valid_events = [
+            's3:ReducedRedundancyLostObject',
+            's3:ObjectCreated:*',
+            's3:ObjectCreated:Put',
+            's3:ObjectCreated:Post',
+            's3:ObjectCreated:Copy',
+            's3:ObjectCreated:CompleteMultipartUpload',
+            's3:ObjectRemoved:*',
+            's3:ObjectRemoved:Delete',
+            's3:ObjectRemoved:DeleteMarkerCreated',
+            's3:ObjectRestore:*',
+            's3:ObjectRestore:Post',
+            's3:ObjectRestore:Completed',
+            's3:Replication:*',
+            's3:Replication:OperationFailedReplication',
+            's3:Replication:OperationNotTracked',
+            's3:Replication:OperationMissedThreshold',
+            's3:Replication:OperationReplicatedAfterThreshold',
+        ]
+        if isinstance(on_events, str):
+            on_events = [on_events]
+
+        if not on_events or not all(x in _valid_events for x in on_events):
+            raise Exception('Invalid S3 events.')
+
+        filter_rules = []
+        if prefix or suffix:
+            if prefix:
+                filter_rules.append({'Name': 'prefix', 'Value': prefix})
+            if suffix:
+                filter_rules.append({'Name': 'suffix', 'Value': suffix})
+
+        config = {
+            'LambdaFunctionConfigurations': [
+                {
+                    # 'Id': event_name,  # If not provided, an ID will be assigned.
+                    'LambdaFunctionArn': lambda_arn,
+                    'Events': on_events,
+                    'Filter': {'Key': {'FilterRules': filter_rules}}
+                }
+            ]
+        }
+
+        self.get_conn().put_bucket_notification_configuration(Bucket=bucket, NotificationConfiguration=config)
