@@ -52,11 +52,12 @@ class SSOOpenIDConnectProvider(BaseAwsProvider):
             authorization['interval'] = res['interval']
         return authorization
 
-    def create_token(self, client, authorization):
-        try:
-            webbrowser.open_new_tab(authorization['verification_uri_complete'])
-        except Exception as e:
-            print('Failed to open browser:', str(e))
+    def create_token(self, client, authorization, open_webbrowser=True):
+        if open_webbrowser:
+            try:
+                webbrowser.open_new_tab(authorization['verification_uri_complete'])
+            except Exception as e:
+                print('Failed to open browser:', str(e))
 
         interval = authorization.get('interval', self._DEFAULT_INTERVAL)
         # NOTE: This loop currently relies on the service to either return
