@@ -20,6 +20,7 @@ class _AwsAssumeRoleConfig(BaseDataClass):
 class AwsSecret(BaseDataClass):
     access_key: Optional[str]
     secret_access_key: Optional[str]
+    session_token: Optional[str]
     assume_role_config: Optional[_AwsAssumeRoleConfig]
 
 
