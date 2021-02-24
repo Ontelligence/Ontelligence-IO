@@ -103,7 +103,13 @@ class BaseAwsProvider(BaseProvider):
             except Exception:
                 raise Exception('Failed to create boto3 session. Fallback to boto3 credential strategy')
 
-        session = boto3.session.Session(region_name=self.region_name, profile_name=self.kwargs.get('profile', None))
+        session_config = {
+            'aws_access_key_id': self.kwargs.get('accessKeyId', self.kwargs.get('aws_access_key_id', None)),
+            'aws_secret_access_key': self.kwargs.get('secretAccessKey', self.kwargs.get('aws_secret_access_key', None)),
+            'aws_session_token': self.kwargs.get('sessionToken', self.kwargs.get('aws_session_token', None))
+        }
+
+        session = boto3.session.Session(region_name=self.region_name, profile_name=self.kwargs.get('profile', None), **session_config)
 
         if 'assume_role_config' in self.kwargs:
             _secret = AwsSecret.from_dict({'assume_role_config': self.kwargs['assume_role_config']})
