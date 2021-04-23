@@ -22,8 +22,8 @@ setup(
     install_requires=[
         'cached-property~=1.5',
         'pandas>=0.17.1, <2.0',
-        'pydantic==1.6.1',
-        'dacite==1.5.1',
+        'pydantic',
+        'dacite',
         'sqlparse==0.4.1',
         'pysftp==0.2.9',
         'boto3',
@@ -32,7 +32,8 @@ setup(
         # 'pendulum>=1.4.4',
         'snowflake-connector-python',
         'flake8',
-        'smart_open[all]'
+        'smart_open[all]',
+        'jira'
     ],
     include_package_data=True,
     zip_safe=False
