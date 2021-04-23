@@ -37,9 +37,9 @@ class S3Bucket(BaseDataClass):
 
 @dataclass
 class S3Key(BaseDataClass):
-    name: str
     bucket: str
     prefix: Optional[str] = ''
+    name: Optional[str] = ''
 
     def __post_init__(self):
         if self.prefix:
