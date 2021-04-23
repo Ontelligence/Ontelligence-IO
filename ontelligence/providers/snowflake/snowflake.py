@@ -1,36 +1,14 @@
-import os
-import logging
-from functools import wraps
-from inspect import signature
-from typing import Optional, List, Dict, TypeVar, Callable, cast
+from typing import Optional, List, Dict
 
 import pandas as pd
 
 from ontelligence.core.schemas.data import Table, Column
 from ontelligence.providers.snowflake.base import BaseSnowflakeProvider
+from ontelligence.utils.decorators.function_factory import provide_if_missing
 from ontelligence.utils.file import get_clean_headers
 
 
-T = TypeVar('T', bound=Callable)
-
-
-def provide_database_and_schema(func: T) -> T:
-    """
-    Function decorator that provides database and schema used during instantiation if not passed to the function.
-    """
-    function_signature = signature(func)
-
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> T:
-        bound_args = function_signature.bind(*args, **kwargs)
-        if 'database' not in bound_args.arguments:
-            self = args[0]
-            bound_args.arguments['database'] = self.database
-        if 'schema' not in bound_args.arguments:
-            self = args[0]
-            bound_args.arguments['schema'] = self.schema
-        return func(*bound_args.args, **bound_args.kwargs)
-    return cast(T, wrapper)
+provide_database_and_schema = provide_if_missing(['database', 'schema'])
 
 
 class Snowflake(BaseSnowflakeProvider):
@@ -231,11 +209,11 @@ class Snowflake(BaseSnowflakeProvider):
             query = f'''CREATE{or_replace} FILE FORMAT{if_not_exists} {file_format}
                         TYPE = {file_format_type}
                         FIELD_OPTIONALLY_ENCLOSED_BY = '"'
-                        NULL_IF = ('NULL', 'null', 'N/A'){skip_header};'''
+                        NULL_IF = ('NULL', 'null', 'N/A', 'None'){skip_header};'''
         elif file_format_type == 'PARQUET':
             query = f'''CREATE{or_replace} FILE FORMAT{if_not_exists} {file_format}
                         TYPE = {file_format_type}
-                        NULL_IF = ('NULL', 'null', 'N/A'){skip_header};'''
+                        NULL_IF = ('NULL', 'null', 'N/A', 'None'){skip_header};'''
 
         self.log_sql(query)
         self.execute(query)
@@ -386,7 +364,8 @@ class Snowflake(BaseSnowflakeProvider):
                      storage_integration: str,
                      file_type: Optional[str] = None,
                      compression: Optional[str] = None,
-                     header: Optional[bool] = True
+                     header: Optional[bool] = True,
+                     single: Optional[bool] = True
                      ):
 
         s3_path = s3_path + file_name if s3_path.endswith('/') else s3_path
@@ -394,6 +373,7 @@ class Snowflake(BaseSnowflakeProvider):
         file_type = file_type or 'CSV'
         compression = compression or 'NONE'
         header = 'TRUE' if header else 'FALSE'
+        single = str(single).upper()
 
         query = f'''COPY INTO '{s3_path}'
                     FROM ({query.rstrip(';')})
@@ -404,6 +384,7 @@ class Snowflake(BaseSnowflakeProvider):
                         FIELD_OPTIONALLY_ENCLOSED_BY='"'
                         NULL_IF = ('', 'NULL', 'null', 'N/A', '//N')
                     )
+                    SINGLE={single}
                     OVERWRITE=TRUE
                     HEADER={header}
                     MAX_FILE_SIZE={5 * 1024**3};'''
@@ -419,7 +400,8 @@ class Snowflake(BaseSnowflakeProvider):
                      compression: Optional[str] = None,
                      header: Optional[bool] = True,
                      database: Optional[str] = None,
-                     schema: Optional[str] = None
+                     schema: Optional[str] = None,
+                     single: Optional[bool] = True
                      ):
         self.export_query(
             query=f'SELECT * FROM {database}.{schema}.{table}',
@@ -428,7 +410,8 @@ class Snowflake(BaseSnowflakeProvider):
             storage_integration=storage_integration,
             file_type=file_type,
             compression=compression,
-            header=header
+            header=header,
+            single=single
         )
 
 ########################################################################################################################
