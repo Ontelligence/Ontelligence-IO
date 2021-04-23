@@ -4,6 +4,8 @@ try:
     import pendulum
 except ImportError:
     pass
+import pytz
+import math
 from calendar import monthrange
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -20,7 +22,10 @@ try:
 except Exception:
     pass
 
-# date_format = date_format.replace('%-', '%#') if sys.platform == 'win32' else date_format.replace('%#', '%-')
+
+def tzware_datetime() -> datetime:
+    """Return a timezone aware datetime"""
+    return datetime.now(pytz.utc)
 
 
 def _try_strptime(date: str, date_format: str) -> datetime:
@@ -153,3 +158,23 @@ def resolve_date_input(exact_date: Optional[str] = None, start_date: Optional[st
             end_date = today(**kwargs)
         list_of_dates = date_range(start_date=start_date, end_date=end_date, **kwargs)
     return {'date_range': {'start_date': start_date, 'end_date': end_date}, 'list_of_dates': list_of_dates}
+
+
+def epoch_to_datetime(epoch_time):
+    return datetime.fromtimestamp(epoch_time, tz=pytz.utc)
+
+
+def datetime_to_epoch(dt: datetime):
+    return dt.timestamp()
+
+
+def current_time_plus_seconds(seconds):
+    return tzware_datetime() + timedelta(seconds=seconds)
+
+
+def is_expired(t: Union[datetime, int]):
+    if isinstance(t, float):
+        t = math.floor(t)
+    if isinstance(t, int):
+        t = epoch_to_datetime(t)
+    return tzware_datetime() > t
