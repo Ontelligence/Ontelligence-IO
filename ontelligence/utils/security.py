@@ -1,3 +1,7 @@
+from typing import Union, Any
+from datetime import datetime, timedelta
+
+from jose import jwt
 import ldap3
 
 
@@ -13,6 +17,20 @@ def try_ldap_login(ldap_provider_url: str, ldap_protocol_version: int, username:
         conn.unbind()
 
     return bind
+
+
+def create_access_token(
+        secret_key: str,
+        # algorithm: str,
+        subject: Union[str, Any],
+        expires_in: int = None,
+) -> str:
+    expire = datetime.utcnow() + timedelta(seconds=expires_in)
+    to_encode = {"exp": expire, "sub": str(subject)}
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm='HS256')
+    return encoded_jwt
+
+
 
 
 # TODO: Fernet key.
